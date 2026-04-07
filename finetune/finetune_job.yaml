@@ -1,0 +1,104 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: qwen9b-finetune-job
+  namespace: ai-onprem
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+
+  template:
+    metadata:
+      labels:
+        app: qwen9b-finetune
+
+    spec:
+      restartPolicy: Never
+
+      nodeSelector:
+        nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3
+
+      containers:
+      - name: trainer
+        image: nvcr.io/nvidia/pytorch:24.01-py3
+        imagePullPolicy: Always
+
+        command: ["/bin/bash", "-c"]
+
+        args:
+          - |
+            echo "===== ENV ====="
+            env
+
+            echo "===== SETUP ====="
+            pip install --upgrade pip
+            pip install transformers datasets peft accelerate bitsandbytes
+
+            export TIMESTAMP=$(date +%s)
+            export LOG_DIR=/models/finetune/logs
+            export EXP_NAME=exp-${TIMESTAMP}
+
+            mkdir -p ${LOG_DIR}
+
+            echo "===== START TRAINING ====="
+            echo "Log file: ${LOG_DIR}/${EXP_NAME}.log"
+
+            python /models/finetune/scripts/train.py 2>&1 | tee ${LOG_DIR}/${EXP_NAME}.log
+
+            echo "===== JOB COMPLETED ====="
+
+        env:
+        - name: BASE_MODEL
+          value: /models/finetune/base/Qwen3.5-9B
+
+        - name: DATASET_NAME
+          value: LLMs/Alpaca-ShareGPT
+
+        - name: MAX_SAMPLES
+          value: "30000"
+
+        - name: VAL_SPLIT
+          value: "0.1"
+
+        - name: LORA_R
+          value: "16"
+
+        - name: LORA_ALPHA
+          value: "32"
+
+        - name: EPOCHS
+          value: "1"
+
+        - name: LR
+          value: "2e-4"
+
+        - name: OUTPUT_BASE
+          value: /models/finetune
+
+        # cache optimization
+        - name: TRANSFORMERS_CACHE
+          value: /models/cache
+        - name: HF_HOME
+          value: /models/cache
+
+        resources:
+          limits:
+            nvidia.com/gpu: "2"
+
+        volumeMounts:
+        - name: nvme-models
+          mountPath: /models
+
+        - name: dshm
+          mountPath: /dev/shm
+
+      volumes:
+      - name: nvme-models
+        hostPath:
+          path: /mnt/localpv-disk/nvme1n1/models
+          type: Directory
+
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
