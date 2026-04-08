@@ -96,6 +96,10 @@ model = AutoModelForCausalLM.from_pretrained(
     dtype=torch.bfloat16
 )
 
+# CRITICAL FIXES FOR OOM:
+model.enable_input_require_grads()  # Required for LoRA + gradient checkpointing
+model.gradient_checkpointing_enable()  # Trades compute for memory (~50% savings)
+
 # Add this - important for Qwen models
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
