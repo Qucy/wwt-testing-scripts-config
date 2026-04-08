@@ -34,6 +34,7 @@ spec:
             pip install --upgrade pip
             pip install transformers datasets peft accelerate bitsandbytes
             pip install torchvision --force-reinstall --no-deps
+            pip install flash-attn --no-build-isolation
             
             python -c "import torch, torchvision; print(f'torch {torch.__version__}'); print(f'torchvision {torchvision.__version__}')"
 
