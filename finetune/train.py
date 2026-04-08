@@ -118,41 +118,46 @@ model = get_peft_model(model, lora_config)
 # =========================
 # STEP 6: TOKENIZATION (FIXED)
 # =========================
-def tokenize(example):
-    if "instruction" in example and "output" in example:
-        text = example["instruction"] + "\n\n" + example["output"]
-    elif "messages" in example and len(example["messages"]) >= 2:
-        text = example["messages"][1].get("content", str(example))
-    else:
-        text = str(example)
+def format_alpaca_prompt(example):
+    """Format Alpaca-style: Instruction + Input + Output"""
+    instruction = example.get("instruction", "")
+    input_text = example.get("input", "")
+    output = example.get("output", "")
     
-    # Tokenize with padding and fixed length
+    # If input exists and is not empty, include it
+    if input_text and str(input_text).strip():
+        text = f"### Instruction:\n{instruction}\n\n### Input:\n{input_text}\n\n### Response:\n{output}"
+    else:
+        # Simple format when input is empty (as in your examples)
+        text = f"{instruction}\n\n{output}"
+    
+    return text
+
+def tokenize(example):
+    text = format_alpaca_prompt(example)
+    
     result = tokenizer(
         text,
         truncation=True,
-        max_length=2048,  # Adjust based on your needs
-        padding="max_length",
+        max_length=2048,
+        padding="max_length"
     )
     
     # CRITICAL: Add labels for Causal LM training
-    # Labels = input_ids for next-token prediction
     result["labels"] = result["input_ids"].copy()
     return result
 
-
-# Use batched=True for speed, remove original columns to avoid conflicts
+# Remove batched=True to avoid the list concatenation error
 train_dataset = train_dataset.map(
     tokenize, 
-    batched=True, 
     remove_columns=train_dataset.column_names
 )
 val_dataset = val_dataset.map(
     tokenize, 
-    batched=True, 
     remove_columns=val_dataset.column_names
 )
 
-# Set format for PyTorch
+# Set format for PyTorch tensors
 train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 
