@@ -1,5 +1,6 @@
 import os
 import time
+import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
 from peft import LoraConfig, get_peft_model
@@ -92,9 +93,13 @@ tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(
     BASE_MODEL,
     device_map="auto",
-    torch_dtype="bfloat16",
-    load_in_4bit=True
+    torch_dtype=torch.bfloat16
 )
+
+# Add this - important for Qwen models
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token_id = tokenizer.eos_token_id
 
 # =========================
 # STEP 5: LoRA CONFIG
