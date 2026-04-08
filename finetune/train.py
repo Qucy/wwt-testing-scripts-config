@@ -93,7 +93,7 @@ tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(
     BASE_MODEL,
     device_map="auto",
-    torch_dtype=torch.bfloat16
+    dtype=torch.bfloat16
 )
 
 # Add this - important for Qwen models
@@ -116,20 +116,45 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config)
 
 # =========================
-# STEP 6: TOKENIZATION
+# STEP 6: TOKENIZATION (FIXED)
 # =========================
 def tokenize(example):
-    if "instruction" in example:
-        text = example["instruction"] + " " + example.get("output", "")
-    elif "messages" in example:
-        text = example["messages"][1]["content"]
+    if "instruction" in example and "output" in example:
+        text = example["instruction"] + "\n\n" + example["output"]
+    elif "messages" in example and len(example["messages"]) >= 2:
+        text = example["messages"][1].get("content", str(example))
     else:
         text = str(example)
+    
+    # Tokenize with padding and fixed length
+    result = tokenizer(
+        text,
+        truncation=True,
+        max_length=2048,  # Adjust based on your needs
+        padding="max_length",
+    )
+    
+    # CRITICAL: Add labels for Causal LM training
+    # Labels = input_ids for next-token prediction
+    result["labels"] = result["input_ids"].copy()
+    return result
 
-    return tokenizer(text, truncation=True)
 
-train_dataset = train_dataset.map(tokenize)
-val_dataset = val_dataset.map(tokenize)
+# Use batched=True for speed, remove original columns to avoid conflicts
+train_dataset = train_dataset.map(
+    tokenize, 
+    batched=True, 
+    remove_columns=train_dataset.column_names
+)
+val_dataset = val_dataset.map(
+    tokenize, 
+    batched=True, 
+    remove_columns=val_dataset.column_names
+)
+
+# Set format for PyTorch
+train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
+val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 
 # =========================
 # STEP 7: TRAINING
