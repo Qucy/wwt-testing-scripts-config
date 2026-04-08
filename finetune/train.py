@@ -168,26 +168,10 @@ val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "la
 # =========================
 # STEP 7: TRAINING
 # =========================
-# training_args = TrainingArguments(
-#     output_dir=EXP_DIR,
-#     per_device_train_batch_size=1,
-#     gradient_accumulation_steps=8,
-#     num_train_epochs=EPOCHS,
-#     logging_steps=10,
-#     save_steps=100,
-#     save_total_limit=2,
-#     eval_strategy="steps",
-#     eval_steps=100,
-#     bf16=True,
-#     learning_rate=LR,
-#     report_to="none"
-# )
-
 training_args = TrainingArguments(
     output_dir=EXP_DIR,
-    per_device_train_batch_size=8,        # Increase from 1 to 8 (or even 16)
-    per_device_eval_batch_size=8,
-    gradient_accumulation_steps=1,        # Reduce or keep at 2
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=8,
     num_train_epochs=EPOCHS,
     logging_steps=10,
     save_steps=1000,
@@ -196,13 +180,29 @@ training_args = TrainingArguments(
     eval_steps=500,
     bf16=True,
     learning_rate=LR,
-    report_to="none",
-    remove_unused_columns=False,
-    warmup_steps=100,                     # Changed from warmup_ratio (fixes deprecation warning)
-    lr_scheduler_type="cosine",
-    seed=42,
-    dataloader_num_workers=4,
+    report_to="none"
 )
+
+# training_args = TrainingArguments(
+#     output_dir=EXP_DIR,
+#     per_device_train_batch_size=8,        # Increase from 1 to 8 (or even 16)
+#     per_device_eval_batch_size=8,
+#     gradient_accumulation_steps=1,        # Reduce or keep at 2
+#     num_train_epochs=EPOCHS,
+#     logging_steps=10,
+#     save_steps=1000,
+#     save_total_limit=2,
+#     eval_strategy="steps",
+#     eval_steps=500,
+#     bf16=True,
+#     learning_rate=LR,
+#     report_to="none",
+#     remove_unused_columns=False,
+#     warmup_steps=100,                     # Changed from warmup_ratio (fixes deprecation warning)
+#     lr_scheduler_type="cosine",
+#     seed=42,
+#     dataloader_num_workers=4,
+# )
 
 trainer = Trainer(
     model=model,
