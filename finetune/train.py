@@ -97,8 +97,8 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 
 # CRITICAL FIXES FOR OOM:
-model.enable_input_require_grads()  # Required for LoRA + gradient checkpointing
-model.gradient_checkpointing_enable()  # Trades compute for memory (~50% savings)
+# model.enable_input_require_grads()  # Required for LoRA + gradient checkpointing
+# model.gradient_checkpointing_enable()  # Trades compute for memory (~50% savings)
 
 # Add this - important for Qwen models
 if tokenizer.pad_token is None:
@@ -185,25 +185,23 @@ val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "la
 
 training_args = TrainingArguments(
     output_dir=EXP_DIR,
-    per_device_train_batch_size=4,        # Increase from 1 to 4 (you have 80GB!)
-    per_device_eval_batch_size=4,         # Add this for faster eval
-    gradient_accumulation_steps=2,        # Reduce from 8 to 2 (keep effective batch=8)
+    per_device_train_batch_size=8,        # Increase from 1 to 8 (or even 16)
+    per_device_eval_batch_size=8,
+    gradient_accumulation_steps=1,        # Reduce or keep at 2
     num_train_epochs=EPOCHS,
     logging_steps=10,
-    save_steps=1000,                      # Increase from 100 - less frequent saves
+    save_steps=1000,
     save_total_limit=2,
     eval_strategy="steps",
-    eval_steps=1000,                       # Change from 100 to 1000 - eval less often
+    eval_steps=500,
     bf16=True,
     learning_rate=LR,
     report_to="none",
     remove_unused_columns=False,
-    warmup_ratio=0.05,
+    warmup_steps=100,                     # Changed from warmup_ratio (fixes deprecation warning)
     lr_scheduler_type="cosine",
     seed=42,
-    # Add these for speed:
-    dataloader_num_workers=4,             # Parallel data loading
-    dataloader_pin_memory=True,           # Faster GPU transfer
+    dataloader_num_workers=4,
 )
 
 trainer = Trainer(
