@@ -33,6 +33,9 @@ spec:
             echo "===== SETUP ====="
             pip install --upgrade pip
             pip install transformers datasets peft accelerate bitsandbytes
+            pip install torchvision --force-reinstall --no-deps
+            
+            python -c "import torch, torchvision; print(f'torch {torch.__version__}'); print(f'torchvision {torchvision.__version__}')"
 
             export TIMESTAMP=$(date +%s)
             export LOG_DIR=/models/finetune/logs
@@ -83,7 +86,7 @@ spec:
 
         resources:
           limits:
-            nvidia.com/gpu: "2"
+            nvidia.com/gpu: "1"
 
         volumeMounts:
         - name: nvme-models
