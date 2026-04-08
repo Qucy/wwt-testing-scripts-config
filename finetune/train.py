@@ -93,7 +93,9 @@ tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(
     BASE_MODEL,
     device_map="auto",
-    dtype=torch.bfloat16
+    dtype=torch.bfloat16,
+    attn_implementation="flash_attention_2",
+    trust_remote_code=True
 )
 
 # CRITICAL FIXES FOR OOM:
