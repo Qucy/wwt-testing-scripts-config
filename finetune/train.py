@@ -164,19 +164,42 @@ val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "la
 # =========================
 # STEP 7: TRAINING
 # =========================
+# training_args = TrainingArguments(
+#     output_dir=EXP_DIR,
+#     per_device_train_batch_size=1,
+#     gradient_accumulation_steps=8,
+#     num_train_epochs=EPOCHS,
+#     logging_steps=10,
+#     save_steps=100,
+#     save_total_limit=2,
+#     eval_strategy="steps",
+#     eval_steps=100,
+#     bf16=True,
+#     learning_rate=LR,
+#     report_to="none"
+# )
+
 training_args = TrainingArguments(
     output_dir=EXP_DIR,
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=8,
+    per_device_train_batch_size=4,        # Increase from 1 to 4 (you have 80GB!)
+    per_device_eval_batch_size=4,         # Add this for faster eval
+    gradient_accumulation_steps=2,        # Reduce from 8 to 2 (keep effective batch=8)
     num_train_epochs=EPOCHS,
     logging_steps=10,
-    save_steps=100,
+    save_steps=1000,                      # Increase from 100 - less frequent saves
     save_total_limit=2,
     eval_strategy="steps",
-    eval_steps=100,
+    eval_steps=1000,                       # Change from 100 to 1000 - eval less often
     bf16=True,
     learning_rate=LR,
-    report_to="none"
+    report_to="none",
+    remove_unused_columns=False,
+    warmup_ratio=0.05,
+    lr_scheduler_type="cosine",
+    seed=42,
+    # Add these for speed:
+    dataloader_num_workers=4,             # Parallel data loading
+    dataloader_pin_memory=True,           # Faster GPU transfer
 )
 
 trainer = Trainer(
