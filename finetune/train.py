@@ -3,7 +3,17 @@ import time
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
+from transformers.utils import is_flash_attn_2_available
 from peft import LoraConfig, get_peft_model
+
+print(f"PyTorch version: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+print(f"CUDA version: {torch.version.cuda}")
+print(f"Flash Attention 2 available: {is_flash_attn_2_available()}")
+
+if is_flash_attn_2_available():
+    import flash_attn
+    print(f"Flash Attention version: {flash_attn.__version__}")
 
 # =========================
 # CONFIG (ENV FIRST)
