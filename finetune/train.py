@@ -223,15 +223,36 @@ trainer = Trainer(
 )
 
 print("Starting training...")
-trainer.train()
+try:
+    trainer.train()
+    print("Training loop finished")
+except Exception as e:
+    print(f"ERROR during training: {e}")
+    import traceback, sys
+    traceback.print_exc()
+    sys.exit(1)
 
 # =========================
 # STEP 8: SAVE MODEL
 # =========================
-print("Saving model...")
+# Aggressive cleanup before save
+import gc
+gc.collect()
+torch.cuda.empty_cache()
 
-model.save_pretrained(FINAL_MODEL_DIR)
-tokenizer.save_pretrained(FINAL_MODEL_DIR)
+print(f"Saving model to {FINAL_MODEL_DIR}...")
+os.makedirs(FINAL_MODEL_DIR, exist_ok=True)
+
+try:
+    # Use safe_serialization to avoid OOM
+    model.save_pretrained(FINAL_MODEL_DIR, safe_serialization=True)
+    tokenizer.save_pretrained(FINAL_MODEL_DIR)
+    print(f"Success: Model saved to {FINAL_MODEL_DIR}")
+except Exception as e:
+    print(f"ERROR saving model: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # Stable symlink
 LATEST_LINK = f"{OUTPUT_BASE}/output/qwen9b-ft/latest"
