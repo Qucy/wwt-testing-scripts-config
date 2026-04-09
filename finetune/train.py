@@ -93,6 +93,12 @@ else:
 train_dataset = load_dataset("json", data_files=TRAIN_PATH)["train"]
 val_dataset = load_dataset("json", data_files=VAL_PATH)["train"]
 
+# QUICK TEST MODE: Limit to 1K samples for fast verification
+print(f"Original sizes - Train: {len(train_dataset)}, Val: {len(val_dataset)}")
+train_dataset = train_dataset.shuffle(seed=42).select(range(min(1000, len(train_dataset))))
+val_dataset = val_dataset.shuffle(seed=42).select(range(min(1000, len(val_dataset))))
+print(f"Test mode sizes - Train: {len(train_dataset)}, Val: {len(val_dataset)}")
+
 # =========================
 # STEP 4: MODEL LOAD
 # =========================
@@ -182,6 +188,7 @@ val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "la
 training_args = TrainingArguments(
     output_dir=EXP_DIR,
     per_device_train_batch_size=2,
+    per_device_eval_batch_size=2,
     gradient_accumulation_steps=8,
     num_train_epochs=EPOCHS,
     logging_steps=10,
